@@ -1,0 +1,22 @@
+__turbopack_load_page_chunks__("/ring-pro/buy", [
+    "static/chunks/dd0e8b8fe2de8780.js",
+    "static/chunks/f24be9422e279128.js",
+    "static/chunks/e770a6bf17bf03e5.js",
+    "static/chunks/f13a0c59b901ab4e.js",
+    "static/chunks/40061adbbff7a387.js",
+    "static/chunks/6b53c9238b8a22a5.js",
+    "static/chunks/2b384dd04311c51f.js",
+    "static/chunks/cdf353058a85a445.js",
+    "static/chunks/b2f0e760e720cc30.js",
+    "static/chunks/f9cd939ebd5bc405.js",
+    "static/chunks/c8024e11b1d991a7.js",
+    "static/chunks/813216db8fdb149b.js",
+    "static/chunks/f0bbdfb1000b29ae.js",
+    "static/chunks/0f3fdc6c2a496674.js",
+    "static/chunks/c83d9f3b15596d96.js",
+    "static/chunks/6ecbececab801c46.js",
+    "static/chunks/908735d897c8e26f.js",
+    "static/chunks/0f008a4986bcc5c5.js",
+    "static/chunks/f71bedc2e7a72e76.css",
+    "static/chunks/turbopack-6985128c783bd69f.js"
+])

@@ -1,2 +1,0 @@
-import{n as e}from"./rolldown-runtime.PZvAO4V3.mjs";import{l as t,s as n}from"./react.Dnx1ohN4.mjs";function r(e){return n=>(n.className+=` test-wordbreak`,t(e,{...n}))}var i=e((()=>{n()}));export{r as n,i as t};
-//# sourceMappingURL=Break_words.D9LsItj2.mjs.map

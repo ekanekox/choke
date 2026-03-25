@@ -1,8 +1,0 @@
-/*
- * PhoneIphone (material-icons/PhoneIphone@0.0.32)
- *
- * Learn More: https://www.framer.com/asset-urls
- */
-
-export * from "https://framerusercontent.com/modules/tytU8NR7E6keJKzZUZMG/5qPpiABZ1OtDLj0hwbCT/PhoneIphone.js"
-export { default } from "https://framerusercontent.com/modules/tytU8NR7E6keJKzZUZMG/5qPpiABZ1OtDLj0hwbCT/PhoneIphone.js"

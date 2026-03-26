@@ -23,6 +23,11 @@ html, body { height: 100%; width: 100%; background: #0a0a0a; color: #fff; overfl
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<script>
+  !function(t,e){var o,n,p,l;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.async=!0,p.src=s.api_host+"/static/array.js",(l=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,l);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys onFeatureFlags onSessionId".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+  posthog.init('phc_RzfLgzxhJdE6KAqo2rFHJEzZCRmzwn8LDNnvWRwCAY6',{api_host:'https://us.i.posthog.com',person_profiles:'identified_only'});
+  posthog.capture('$pageview');
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
 <script type="text/babel" data-type="module">
 const { useState, useEffect, useRef, useCallback } = React;
@@ -53,6 +58,157 @@ const SPORTS = [
 
 const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 const fmtPad = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+
+// ===== ANALYTICS =====
+const track = (event, props = {}) => {
+  try { window.posthog?.capture(event, props); } catch {}
+};
+
+// ===== MOCK LIVE ACTIVITY =====
+const CITIES = ["São Paulo", "Tokyo", "New York", "London", "Melbourne", "Rio de Janeiro", "Los Angeles", "Berlin", "Bangkok", "Dubai", "Amsterdam", "Lisbon", "Austin", "San Diego", "Stockholm"];
+const ACADEMIES = ["Alliance HQ", "Atos", "Gracie Barra", "10th Planet", "Checkmat", "AOJ", "Renzo Gracie", "RVCA", "Unity", "Cicero Costha", "Fight Sports", "Nova União", "GFTeam", "Carlson Gracie", "BTT"];
+const NAMES = ["Lucas M.", "Kenji T.", "Sarah W.", "Pedro H.", "Yuki S.", "James R.", "Ana L.", "Marcus D.", "Liam K.", "Sofia R.", "Diego F.", "Emma C.", "Rafael O.", "Mia J.", "Carlos B."];
+
+function generateMockSessions() {
+  const count = 4 + Math.floor(Math.random() * 5);
+  return Array.from({ length: count }, (_, i) => {
+    const sport = SPORTS[Math.floor(Math.random() * 3)]; // BJJ, Boxing, MMA mostly
+    const round = 1 + Math.floor(Math.random() * sport.rounds);
+    const elapsed = Math.floor(Math.random() * sport.roundTime);
+    const isRest = Math.random() > 0.7;
+    return {
+      id: i,
+      name: NAMES[Math.floor(Math.random() * NAMES.length)],
+      city: CITIES[Math.floor(Math.random() * CITIES.length)],
+      academy: ACADEMIES[Math.floor(Math.random() * ACADEMIES.length)],
+      sport,
+      round,
+      totalRounds: sport.rounds,
+      elapsed,
+      isRest,
+      phase: isRest ? "rest" : "work",
+    };
+  });
+}
+
+// ===== LIVE ACTIVITY TABLE =====
+function LiveActivityFeed() {
+  const [sessions, setSessions] = useState(() => generateMockSessions());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSessions((prev) =>
+        prev.map((s) => {
+          const newElapsed = s.elapsed + 1;
+          const phaseDuration = s.isRest ? s.sport.restTime : s.sport.roundTime;
+          if (newElapsed >= phaseDuration) {
+            if (!s.isRest && s.round < s.totalRounds) {
+              return { ...s, elapsed: 0, isRest: true, phase: "rest" };
+            } else if (s.isRest) {
+              return { ...s, elapsed: 0, isRest: false, phase: "work", round: Math.min(s.round + 1, s.totalRounds) };
+            }
+            // Session done — generate new one
+            const sport = SPORTS[Math.floor(Math.random() * 3)];
+            return {
+              ...s,
+              name: NAMES[Math.floor(Math.random() * NAMES.length)],
+              city: CITIES[Math.floor(Math.random() * CITIES.length)],
+              academy: ACADEMIES[Math.floor(Math.random() * ACADEMIES.length)],
+              sport, round: 1, totalRounds: sport.rounds, elapsed: 0, isRest: false, phase: "work",
+            };
+          }
+          return { ...s, elapsed: newElapsed };
+        })
+      );
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Occasionally add/remove sessions
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSessions((prev) => {
+        if (Math.random() > 0.5 && prev.length < 12) {
+          const sport = SPORTS[Math.floor(Math.random() * 3)];
+          return [...prev, {
+            id: Date.now(),
+            name: NAMES[Math.floor(Math.random() * NAMES.length)],
+            city: CITIES[Math.floor(Math.random() * CITIES.length)],
+            academy: ACADEMIES[Math.floor(Math.random() * ACADEMIES.length)],
+            sport, round: 1, totalRounds: sport.rounds, elapsed: 0, isRest: false, phase: "work",
+          }];
+        }
+        if (prev.length > 3 && Math.random() > 0.6) {
+          return prev.filter((_, i) => i !== Math.floor(Math.random() * prev.length));
+        }
+        return prev;
+      });
+    }, 8000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div style={{ width: "100%" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 6, height: 6, borderRadius: "50%", background: T.green, animation: "blink 2s infinite" }} />
+          <span style={{ fontFamily: T.font, fontSize: 11, fontWeight: 600, letterSpacing: 1, color: w(0.35), textTransform: "uppercase" }}>Live Training</span>
+        </div>
+        <span style={{ fontFamily: T.mono, fontSize: 11, color: w(0.2) }}>{sessions.length} active</span>
+      </div>
+      <div style={{
+        background: w(0.03), border: `1px solid ${w(0.05)}`, borderRadius: 14,
+        overflow: "hidden",
+      }}>
+        {/* Header */}
+        <div style={{
+          display: "grid", gridTemplateColumns: "1fr 1fr 70px 60px",
+          padding: "8px 12px", borderBottom: `1px solid ${w(0.05)}`,
+        }}>
+          {["Athlete", "Academy", "Round", "Timer"].map((h) => (
+            <span key={h} style={{ fontFamily: T.font, fontSize: 9, fontWeight: 700, letterSpacing: 1, color: w(0.2), textTransform: "uppercase" }}>{h}</span>
+          ))}
+        </div>
+        {/* Rows */}
+        <div style={{ maxHeight: 200, overflowY: "auto" }}>
+          {sessions.map((s) => {
+            const remaining = (s.isRest ? s.sport.restTime : s.sport.roundTime) - s.elapsed;
+            return (
+              <div key={s.id} style={{
+                display: "grid", gridTemplateColumns: "1fr 1fr 70px 60px",
+                padding: "8px 12px", borderBottom: `1px solid ${w(0.03)}`,
+                alignItems: "center",
+                transition: "opacity 0.3s",
+              }}>
+                <div>
+                  <div style={{ fontFamily: T.font, fontSize: 12, fontWeight: 500, color: w(0.7) }}>{s.name}</div>
+                  <div style={{ fontFamily: T.font, fontSize: 9, color: w(0.2) }}>{s.city}</div>
+                </div>
+                <div style={{ fontFamily: T.font, fontSize: 11, color: w(0.35) }}>{s.academy}</div>
+                <div style={{ fontFamily: T.mono, fontSize: 11, color: w(0.4) }}>
+                  R{s.round}/{s.totalRounds}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <div style={{
+                    width: 5, height: 5, borderRadius: "50%",
+                    background: s.isRest ? T.blue : s.sport.color,
+                    animation: "blink 2s infinite",
+                  }} />
+                  <span style={{
+                    fontFamily: T.mono, fontSize: 11, fontWeight: 600,
+                    color: s.isRest ? T.blue : (remaining <= 10 ? T.red : w(0.5)),
+                  }}>
+                    {fmtPad(remaining)}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ===== AUDIO ENGINE =====
 class AudioEngine {
@@ -206,7 +362,7 @@ function ConfigScreen({ config, onStart, onSportSelect, onConfigOpen }) {
       <DarkMap>
         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "55%", background: "linear-gradient(to bottom, transparent 0%, rgba(10,10,10,0.6) 25%, rgba(10,10,10,0.92) 50%, rgba(10,10,10,0.98) 100%)", backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)" }} />
       </DarkMap>
-      <div style={{ position: "relative", zIndex: 2, display: "flex", flexDirection: "column", height: "100%", padding: "20px 24px" }}>
+      <div style={{ position: "relative", zIndex: 2, display: "flex", flexDirection: "column", height: "100%", padding: "20px 24px", paddingBottom: "max(20px, env(safe-area-inset-bottom, 20px))", overflow: "auto", WebkitOverflowScrolling: "touch" }}>
         <div style={{ fontFamily: T.font, fontSize: 38, fontWeight: 900, letterSpacing: -2, color: w(0.95), marginTop: 12 }}>choke.</div>
         <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
@@ -223,6 +379,7 @@ function ConfigScreen({ config, onStart, onSportSelect, onConfigOpen }) {
             <span style={{ marginLeft: "auto", fontWeight: 600, color: w(0.6) }}>{fmt(totalSec)} <span style={{ fontSize: 10, color: w(0.25) }}>&#9662;</span></span>
           </div>
           <StartButton onClick={onStart} />
+          <LiveActivityFeed />
           <div style={{ display: "flex", justifyContent: "space-around", padding: "12px 0 4px" }}>
             {["profile", "timer", "stats"].map((icon, i) => (
               <div key={icon} style={{ width: 28, height: 28, borderRadius: "50%", border: `1.5px solid ${w(i === 1 ? 0.5 : 0.15)}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
@@ -401,7 +558,7 @@ function TimerScreen({ config, timer, onPause, onSkip, onStop, onMetric }) {
       </div>
 
       {/* Controls */}
-      <div style={{ marginTop: "auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 20, padding: "12px 24px 28px", position: "relative", zIndex: 2 }}>
+      <div style={{ marginTop: "auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 20, padding: "12px 24px", paddingBottom: "max(28px, env(safe-area-inset-bottom, 28px))", position: "relative", zIndex: 2 }}>
         <button onClick={onStop} style={{ width: 44, height: 44, background: w(0.08), border: "none", borderRadius: "50%", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill={w(0.5)}><rect x="6" y="6" width="12" height="12" rx="1" /></svg>
         </button>
@@ -426,12 +583,13 @@ function DoneScreen({ config, timer, onNewSession }) {
   const now = new Date();
   const totalSec = config.rounds * config.roundTime + (config.rounds - 1) * config.restTime;
   const handleShare = () => {
+    track("session_shared", { sport: config.sport.name, metrics: timer.metrics });
     const text = `${config.sport.name} — ${config.rounds} rounds · ${fmt(config.rounds * config.roundTime)} work\nSubmissions: ${timer.metrics.submissions} | Sweeps: ${timer.metrics.sweeps} | Guard Pulls: ${timer.metrics.guards}\nTrained with choke.ac`;
     if (navigator.share) navigator.share({ title: "Choke Timer", text });
     else navigator.clipboard?.writeText(text).then(() => alert("Results copied!"));
   };
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", padding: "60px 24px 32px", background: T.bg }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", padding: "60px 24px 32px", paddingBottom: "max(32px, env(safe-area-inset-bottom, 32px))", background: T.bg }}>
       <div style={{ width: 80, height: 80, borderRadius: "50%", border: "2px solid rgba(244,164,35,0.4)", background: "rgba(244,164,35,0.08)", display: "flex", alignItems: "center", justifyContent: "center", animation: "checkIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)" }}>
         <svg width="36" height="36" viewBox="0 0 24 24" stroke={T.gold} fill="none" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
       </div>
@@ -489,7 +647,11 @@ function SportModal({ open, onClose, onSelect }) {
 function ConfigModal({ open, onClose, config, setConfig }) {
   if (!open) return null;
   const adjust = (field, delta) => {
-    setConfig((c) => ({ ...c, [field]: field === "rounds" ? Math.max(1, Math.min(30, c[field] + delta)) : Math.max(field === "restTime" ? 0 : 15, Math.min(field === "restTime" ? 600 : 3600, c[field] + delta)) }));
+    setConfig((c) => {
+      const newVal = field === "rounds" ? Math.max(1, Math.min(30, c[field] + delta)) : Math.max(field === "restTime" ? 0 : 15, Math.min(field === "restTime" ? 600 : 3600, c[field] + delta));
+      track("config_changed", { field, value: newVal, sport: c.sport.name });
+      return { ...c, [field]: newVal };
+    });
   };
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
@@ -531,6 +693,8 @@ function ChokeTimer() {
 
   const startSession = useCallback(async () => {
     await audio.init();
+    const c = configRef.current;
+    track("session_started", { sport: c.sport.name, rounds: c.rounds, round_time: c.roundTime, rest_time: c.restTime, total_time: c.rounds * c.roundTime + (c.rounds - 1) * c.restTime });
     setTimer({ phase: "work", currentRound: 1, elapsed: 0, totalElapsed: 0, paused: false, metrics: { submissions: 0, sweeps: 0, guards: 0 } });
     try { await document.documentElement.requestFullscreen?.(); } catch {}
     try { await navigator.wakeLock?.request("screen"); } catch {}
@@ -555,7 +719,7 @@ function ChokeTimer() {
       if (remaining <= 10 && remaining > 0) audio.beepCountdown(remaining);
       if (newElapsed >= phaseDuration) {
         if (t.phase === "work") {
-          if (t.currentRound >= c.rounds) { clearInterval(timerRef.current); audio.stopTicking(); audio.sessionEnd(); setScreen("done"); setTimer((p) => ({ ...p, elapsed: newElapsed, totalElapsed: newTotalElapsed })); return; }
+          if (t.currentRound >= c.rounds) { clearInterval(timerRef.current); audio.stopTicking(); audio.sessionEnd(); track("session_completed", { sport: c.sport.name, rounds: c.rounds, round_time: c.roundTime, rest_time: c.restTime, total_time: c.rounds * c.roundTime + (c.rounds - 1) * c.restTime, metrics: t.metrics }); setScreen("done"); setTimer((p) => ({ ...p, elapsed: newElapsed, totalElapsed: newTotalElapsed })); return; }
           audio.roundEnd(); setTimer((p) => ({ ...p, phase: "rest", elapsed: 0, totalElapsed: newTotalElapsed }));
         } else { audio.roundEnd(); setTimer((p) => ({ ...p, phase: "work", currentRound: p.currentRound + 1, elapsed: 0, totalElapsed: newTotalElapsed })); }
       } else { setTimer((p) => ({ ...p, elapsed: newElapsed, totalElapsed: newTotalElapsed })); }
@@ -564,11 +728,11 @@ function ChokeTimer() {
 
   useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); audio.stopTicking(); }, []);
 
-  const handlePause = () => setTimer((p) => { const np = !p.paused; if (np) audio.stopTicking(); else audio.startTicking(); return { ...p, paused: np }; });
-  const handleSkip = () => { const t = timerStateRef.current; const c = configRef.current; const pd = t.phase === "work" ? c.roundTime : c.restTime; const rem = pd - t.elapsed; setTimer((p) => ({ ...p, elapsed: pd - 1, totalElapsed: p.totalElapsed + rem - 1 })); };
-  const handleStop = () => { clearInterval(timerRef.current); audio.stopTicking(); setScreen("done"); };
-  const handleMetric = (key) => { audio.tick(); setTimer((p) => ({ ...p, metrics: { ...p.metrics, [key]: p.metrics[key] + 1 } })); };
-  const handleSportSelect = (i) => { const s = SPORTS[i]; setConfig({ sport: s, rounds: s.rounds, roundTime: s.roundTime, restTime: s.restTime }); setSportModal(false); };
+  const handlePause = () => setTimer((p) => { const np = !p.paused; if (np) { audio.stopTicking(); track("session_paused", { sport: configRef.current.sport.name, round: p.currentRound, phase: p.phase }); } else { audio.startTicking(); track("session_resumed", { sport: configRef.current.sport.name, round: p.currentRound, phase: p.phase }); } return { ...p, paused: np }; });
+  const handleSkip = () => { const t = timerStateRef.current; const c = configRef.current; const pd = t.phase === "work" ? c.roundTime : c.restTime; const rem = pd - t.elapsed; track("round_skipped", { sport: c.sport.name, round: t.currentRound, phase: t.phase }); setTimer((p) => ({ ...p, elapsed: pd - 1, totalElapsed: p.totalElapsed + rem - 1 })); };
+  const handleStop = () => { const t = timerStateRef.current; const c = configRef.current; track("session_stopped", { sport: c.sport.name, round: t.currentRound, total_elapsed: t.totalElapsed, metrics: t.metrics }); clearInterval(timerRef.current); audio.stopTicking(); setScreen("done"); };
+  const handleMetric = (key) => { audio.tick(); track("metric_tapped", { metric: key, sport: configRef.current.sport.name, round: timerStateRef.current.currentRound }); setTimer((p) => ({ ...p, metrics: { ...p.metrics, [key]: p.metrics[key] + 1 } })); };
+  const handleSportSelect = (i) => { const s = SPORTS[i]; track("sport_selected", { sport: s.name }); setConfig({ sport: s, rounds: s.rounds, roundTime: s.roundTime, restTime: s.restTime }); setSportModal(false); };
 
   return (
     <div style={{ width: "100%", height: "100vh", background: T.bg, overflow: "hidden", fontFamily: T.font, position: "relative" }}>

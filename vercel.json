@@ -1,5 +1,11 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/bjj", "destination": "/index.html" },
+    { "source": "/boxing", "destination": "/index.html" },
+    { "source": "/mma", "destination": "/index.html" },
+    { "source": "/hiit", "destination": "/index.html" },
+    { "source": "/muaythai", "destination": "/index.html" },
+    { "source": "/wrestling", "destination": "/index.html" },
+    { "source": "/tabata", "destination": "/index.html" }
   ]
 }

@@ -59,6 +59,39 @@ const SPORTS = [
 const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 const fmtPad = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
+// ===== URL CONFIG =====
+const SPORT_SLUGS = { "Brazilian Jiu-Jitsu": "bjj", "Boxing": "boxing", "MMA": "mma", "HIIT": "hiit", "Muay Thai": "muaythai", "Wrestling": "wrestling", "Tabata": "tabata" };
+const SLUG_TO_SPORT = Object.fromEntries(SPORTS.map((s) => [SPORT_SLUGS[s.name], s]));
+
+function configFromURL() {
+  const p = new URLSearchParams(window.location.search);
+  // Support both /bjj path and ?sport=bjj query param
+  const pathSlug = window.location.pathname.replace(/^\//, "").toLowerCase();
+  const sport = SLUG_TO_SPORT[p.get("sport")] || SLUG_TO_SPORT[pathSlug] || null;
+  const rounds = parseInt(p.get("rounds"));
+  const roundTime = parseInt(p.get("work"));
+  const restTime = parseInt(p.get("rest"));
+  if (!sport && isNaN(rounds) && isNaN(roundTime) && isNaN(restTime)) return null;
+  const base = sport || SPORTS[0];
+  return {
+    sport: base,
+    rounds: (!isNaN(rounds) && rounds >= 1 && rounds <= 30) ? rounds : base.rounds,
+    roundTime: (!isNaN(roundTime) && roundTime >= 15 && roundTime <= 3600) ? roundTime : base.roundTime,
+    restTime: (!isNaN(restTime) && restTime >= 0 && restTime <= 600) ? restTime : base.restTime,
+  };
+}
+
+function configToURL(config) {
+  const slug = SPORT_SLUGS[config.sport.name] || "bjj";
+  const defaults = config.sport;
+  const p = new URLSearchParams();
+  p.set("sport", slug);
+  if (config.rounds !== defaults.rounds) p.set("rounds", config.rounds);
+  if (config.roundTime !== defaults.roundTime) p.set("work", config.roundTime);
+  if (config.restTime !== defaults.restTime) p.set("rest", config.restTime);
+  return p.toString();
+}
+
 // ===== ANALYTICS =====
 const track = (event, props = {}) => {
   try { window.posthog?.capture(event, props); } catch {}
@@ -680,7 +713,14 @@ function ConfigModal({ open, onClose, config, setConfig }) {
 // ===== MAIN APP =====
 function ChokeTimer() {
   const [screen, setScreen] = useState("config");
-  const [config, setConfig] = useState({ sport: SPORTS[0], rounds: 5, roundTime: 300, restTime: 60 });
+  const [config, setConfig] = useState(() => configFromURL() || { sport: SPORTS[0], rounds: 5, roundTime: 300, restTime: 60 });
+
+  // Sync config to URL in real-time
+  useEffect(() => {
+    const qs = configToURL(config);
+    const newURL = `${window.location.pathname}?${qs}`;
+    window.history.replaceState(null, "", newURL);
+  }, [config]);
   const [timer, setTimer] = useState({ phase: "work", currentRound: 1, elapsed: 0, totalElapsed: 0, paused: false, metrics: { submissions: 0, sweeps: 0, guards: 0 } });
   const [getReadyCount, setGetReadyCount] = useState(3);
   const [sportModal, setSportModal] = useState(false);
